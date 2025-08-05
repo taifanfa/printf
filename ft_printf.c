@@ -1,42 +1,42 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   ft_printf.c                                        :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: tmorais- <tmorais-@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/08/02 14:06:52 by tmorais-          #+#    #+#             */
-/*   Updated: 2025/08/02 14:53:07 by tmorais-         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "ft_printf.h"
 
-static int	ft_process_conversion(char conversion, va_list args)
+static int	ft_process_format(char c, va_list args)
 {
-	int	count;
-
-	count = 0;
-	if (conversion == 'c')
-		count += ft_print_char(va_arg(args, int));
-	else if (conversion == 's')
-		count += ft_print_string(va_arg(args, char *));
-	else if (conversion == 'p')
-		count += ft_print_pointer(va_arg(args, void *));
-	else if (conversion == 'd' || conversion == 'i')
-		count += ft_print_int(va_arg(args, int));
-	else if (conversion == 'u')
-		count += ft_print_unsigned(va_arg(args, unsigned int));
-	else if (conversion == 'x')
-		count += ft_print_hex_lower(va_arg(args, unsigned int));
-	else if (conversion == 'X')
-		count += ft_print_hex_upper(va_arg(args, unsigned int));
-	else if (conversion == '%')
-		count += ft_print_percent();
-	return (count);
+	if (c == 'c')
+		return (ft_putchar_count(va_arg(args, int)));
+	if (c == 's')
+		return (ft_putstr_count(va_arg(args, char *)));
+	if (c == 'p')
+		return (ft_print_ptr(va_arg(args, void *)));
+	if (c == 'd' || c == 'i')
+		return (ft_print_nbr(va_arg(args, int), "0123456789"));
+	if (c == 'u')
+		return (ft_print_nbr(va_arg(args, unsigned int), "0123456789"));
+	if (c == 'x')
+		return (ft_print_nbr(va_arg(args, unsigned int), "0123456789abcdef"));
+	if (c == 'X')
+		return (ft_print_nbr(va_arg(args, unsigned int), "0123456789ABCDEF"));
+	if (c == '%')
+		return (ft_putchar_count('%'));
+	return (ft_putchar_count('%') + ft_putchar_count(c));
 }
 
-static int	ft_parse_format(const char *format, va_list args)
+static int	ft_is_valid(char c)
+{
+	char	*valid = "cspdiuxX%";
+	int		i;
+
+	i = 0;
+	while (valid[i])
+	{
+		if (valid[i] == c)
+			return (1);
+		i++;
+	}
+	return (0);
+}
+
+static int	ft_parse(const char *format, va_list args)
 {
 	int	i;
 	int	count;
@@ -48,15 +48,12 @@ static int	ft_parse_format(const char *format, va_list args)
 		if (format[i] == '%' && format[i + 1])
 		{
 			i++;
-			if (ft_isvalid_conversion(format[i]))
-				count += ft_process_conversion(format[i], args);
+			if (ft_is_valid(format[i]))
+				count += ft_process_format(format[i], args);
 			else
-			{
-				count += ft_putchar_count('%');
-				count += ft_putchar_count(format[i]);
-			}
+				count += ft_putchar_count('%') + ft_putchar_count(format[i]);
 		}
-		else if (format[i] == '%' && !format[i + 1])
+		else if (format[i] == '%')
 			count += ft_putchar_count('%');
 		else
 			count += ft_putchar_count(format[i]);
@@ -73,8 +70,10 @@ int	ft_printf(const char *format, ...)
 	count = 0;
 	if (!format)
 		return (-1);
+	if (format[0] == '\0')
+    	return (0);
 	va_start(args, format);
-	count += ft_parse_format(format, args);
+	count = ft_parse(format, args);
 	va_end(args);
 	return (count);
 }
